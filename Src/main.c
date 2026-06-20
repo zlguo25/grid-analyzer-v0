@@ -21,7 +21,10 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "led_indicator.h"
+#include "uart_protocol.h"
+#include "adc_ads8685.h"
+#include "app_state_machine.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -68,6 +71,16 @@ static void MX_TIM3_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+/**
+  * @brief  初始化 DWT Cycle Counter
+  */
+static void HAL_DWT_Init(void)
+{
+    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+    DWT->CYCCNT = 0;
+    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -105,7 +118,14 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
-  HAL_TIM_Base_Start_IT(&htim3);   /* 启动 TIM3 中断（10Hz，LED闪烁） */
+  /* ---------- 初始化用户模块 ---------- */
+  led_indicator_init();           /* LED 初始常亮 */
+  adc_ads8685_init();             /* 配置 ADS8685 ±10.24V + daisy chain */
+  uart_protocol_init();           /* 启动 UART 接收中断 */
+  app_state_machine_init();       /* 状态机初始化为 IDLE */
+
+  HAL_DWT_Init();                 /* 初始化 DWT Cycle Counter（用于 delay_us） */
+  HAL_TIM_Base_Start_IT(&htim3);  /* 启动 TIM3 中断（10Hz，LED闪烁） */
   /* TIM2 由状态机控制启停：进入 ADC_CONV 时启动，采集完成/DATA_TRANS 时停止 */
 
   /* USER CODE END 2 */
@@ -117,6 +137,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    app_state_machine_run();      /* 状态机主循环 */
   }
   /* USER CODE END 3 */
 }
@@ -441,6 +462,41 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+/**
+  * @brief  TIM2/TIM3 周期中断回调
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+    if (htim->Instance == TIM2) {
+        /* TIM2: 32768Hz → 每次中断完成一次采样 */
+        adc_ads8685_read_sample();
+    }
+    else if (htim->Instance == TIM3) {
+        /* TIM3: 10Hz → 每 100ms 翻转 LED */
+        led_indicator_tick();
+    }
+}
+
+/**
+  * @brief  UART 接收完成回调（每收到 1 字节）
+  */
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+    if (huart->Instance == LPUART1) {
+        uart_protocol_rx_callback();
+    }
+}
+
+/**
+  * @brief  UART 发送完成回调
+  */
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+{
+    if (huart->Instance == LPUART1) {
+        evt_tx_done = 1;
+    }
+}
 
 /* USER CODE END 4 */
 

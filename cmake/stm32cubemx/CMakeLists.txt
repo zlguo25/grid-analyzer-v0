@@ -25,6 +25,11 @@ set(MX_Application_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Src/sysmem.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Src/syscalls.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../startup_stm32g474xx.s
+    # 用户模块
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Src/led_indicator.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Src/uart_protocol.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Src/adc_ads8685.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Src/app_state_machine.c
 )
 
 # STM32 HAL/LL Drivers
