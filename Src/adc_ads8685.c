@@ -65,6 +65,14 @@ void adc_ads8685_init(void)
   */
 void adc_ads8685_read_sample(void)
 {
+#if SELF_TEST
+    /* 自测模式：纯计数器，无SPI操作 */
+    sample_count++;
+    if (sample_count >= ADC_SAMPLE_COUNT) {
+        sample_count = 0;
+        evt_sample_done = 1;
+    }
+#else
     uint16_t temp;
 
     /* ① CONVST↑ → 采样 + 启动转换 */
@@ -77,19 +85,15 @@ void adc_ads8685_read_sample(void)
     HAL_GPIO_WritePin(CONVST_GPIO_Port, CONVST_Pin, GPIO_PIN_RESET);
 
     /* ④ SPI 4×16-bit 读取 (64 SCLK 边沿) */
-    /* 顺序: ADC2(电流) 高16b → ADC2 低16b → ADC1(电压) 高16b → ADC1 低16b */
-    HAL_SPI_Receive(&hspi3, (uint8_t *)&temp, 1, HAL_MAX_DELAY);                         /* ADC2 高16b → 丢弃 */
-    HAL_SPI_Receive(&hspi3, (uint8_t *)&adc_current_buf[sample_count], 1, HAL_MAX_DELAY); /* ADC2 低16b → 电流 */
-    HAL_SPI_Receive(&hspi3, (uint8_t *)&temp, 1, HAL_MAX_DELAY);                          /* ADC1 高16b → 丢弃 */
-    HAL_SPI_Receive(&hspi3, (uint8_t *)&adc_voltage_buf[sample_count], 1, HAL_MAX_DELAY); /* ADC1 低16b → 电压 */
+    HAL_SPI_Receive(&hspi3, (uint8_t *)&temp, 1, HAL_MAX_DELAY);
+    HAL_SPI_Receive(&hspi3, (uint8_t *)&adc_current_buf[sample_count], 1, HAL_MAX_DELAY);
+    HAL_SPI_Receive(&hspi3, (uint8_t *)&temp, 1, HAL_MAX_DELAY);
+    HAL_SPI_Receive(&hspi3, (uint8_t *)&adc_voltage_buf[sample_count], 1, HAL_MAX_DELAY);
 
-    /* ⑤ 计数 */
     sample_count++;
-
-    /* CONVST 保持 LOW，等待下一次 ISR */
-
     if (sample_count >= ADC_SAMPLE_COUNT) {
         sample_count = 0;
         evt_sample_done = 1;
     }
+#endif
 }
