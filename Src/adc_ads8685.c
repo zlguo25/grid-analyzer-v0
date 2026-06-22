@@ -6,21 +6,15 @@
   */
 #include "adc_ads8685.h"
 
-/* ---------- 事件标志 ---------- */
 volatile uint8_t evt_sample_done = 0;
 volatile uint8_t adc_spi_timeout_error = 0;
 volatile uint8_t adc_led_slow_tick = 0;
 
-/* ---------- 采样数据缓冲区 ---------- */
 uint16_t adc_voltage_buf[ADC_SAMPLE_COUNT];
 uint16_t adc_current_buf[ADC_SAMPLE_COUNT];
 
 static uint32_t sample_count = 0;
-
-/* ---------- SPI 超时参数 ---------- */
-#define SPI_TIMEOUT_MS   10U
-
-/* ---------- 初始化 ---------- */
+#define SPI_TIMEOUT_CYCLES  170000000U / 100U   /* 10ms @ 170MHz */
 
 static void adc_write_command(uint32_t cmd)
 {
@@ -47,26 +41,31 @@ void adc_ads8685_init(void)
     adc_led_slow_tick = 0;
 }
 
+static int spi_rx16_dwt(uint16_t *data)
+{
+    uint32_t start = DWT->CYCCNT;
+    /* 写 DR 产生 16 SCLK */
+    *((__IO uint16_t *)&hspi3.Instance->DR) = 0x0000;
+    while (!(__HAL_SPI_GET_FLAG(&hspi3, SPI_FLAG_RXNE))) {
+        if ((DWT->CYCCNT - start) > SPI_TIMEOUT_CYCLES) return 0;
+    }
+    *data = (uint16_t)hspi3.Instance->DR;
+    return 1;
+}
+
 void adc_ads8685_read_sample(void)
 {
-    HAL_StatusTypeDef status;
     uint16_t temp;
-
     if (adc_spi_timeout_error) return;
 
     HAL_GPIO_WritePin(CONVST_GPIO_Port, CONVST_Pin, GPIO_PIN_SET);
     delay_us(1);
     HAL_GPIO_WritePin(CONVST_GPIO_Port, CONVST_Pin, GPIO_PIN_RESET);
 
-    /* SPI 4×16-bit 读取，每次 10ms 超时 */
-    status = HAL_SPI_Receive(&hspi3, (uint8_t *)&temp, 1, SPI_TIMEOUT_MS);
-    if (status != HAL_OK) goto spi_error;
-    status = HAL_SPI_Receive(&hspi3, (uint8_t *)&adc_current_buf[sample_count], 1, SPI_TIMEOUT_MS);
-    if (status != HAL_OK) goto spi_error;
-    status = HAL_SPI_Receive(&hspi3, (uint8_t *)&temp, 1, SPI_TIMEOUT_MS);
-    if (status != HAL_OK) goto spi_error;
-    status = HAL_SPI_Receive(&hspi3, (uint8_t *)&adc_voltage_buf[sample_count], 1, SPI_TIMEOUT_MS);
-    if (status != HAL_OK) goto spi_error;
+    if (!spi_rx16_dwt(&temp)) goto spi_error;
+    if (!spi_rx16_dwt(&adc_current_buf[sample_count])) goto spi_error;
+    if (!spi_rx16_dwt(&temp)) goto spi_error;
+    if (!spi_rx16_dwt(&adc_voltage_buf[sample_count])) goto spi_error;
 
     sample_count++;
     if (sample_count >= ADC_SAMPLE_COUNT) {
@@ -79,5 +78,5 @@ spi_error:
     adc_spi_timeout_error = 1;
     evt_sample_done = 0;
     HAL_TIM_Base_Stop_IT(&htim2);
-    adc_led_slow_tick = 0;   /* 启动慢闪 */
+    adc_led_slow_tick = 0;
 }
