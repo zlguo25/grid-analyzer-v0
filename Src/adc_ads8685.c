@@ -47,21 +47,6 @@ void adc_ads8685_init(void)
     adc_led_slow_tick = 0;
 }
 
-static HAL_StatusTypeDef spi_receive_timeout(uint8_t *pData)
-{
-    uint32_t tickstart = HAL_GetTick();
-    SET_BIT(hspi3.Instance->CR1, SPI_CR1_SPE);
-    *((__IO uint16_t *)&hspi3.Instance->DR) = 0xFFFF;
-    while (__HAL_SPI_GET_FLAG(&hspi3, SPI_FLAG_RXNE) == RESET) {
-        if ((HAL_GetTick() - tickstart) >= SPI_TIMEOUT_MS) {
-            __HAL_SPI_DISABLE(&hspi3);
-            return HAL_TIMEOUT;
-        }
-    }
-    *((uint16_t *)pData) = (uint16_t)hspi3.Instance->DR;
-    return HAL_OK;
-}
-
 void adc_ads8685_read_sample(void)
 {
 #if SELF_TEST
@@ -82,13 +67,14 @@ void adc_ads8685_read_sample(void)
     delay_us(1);
     HAL_GPIO_WritePin(CONVST_GPIO_Port, CONVST_Pin, GPIO_PIN_RESET);
 
-    status = spi_receive_timeout((uint8_t *)&temp);
+    /* SPI 4×16-bit 读取，每次 10ms 超时 */
+    status = HAL_SPI_Receive(&hspi3, (uint8_t *)&temp, 1, SPI_TIMEOUT_MS);
     if (status != HAL_OK) goto spi_error;
-    status = spi_receive_timeout((uint8_t *)&adc_current_buf[sample_count]);
+    status = HAL_SPI_Receive(&hspi3, (uint8_t *)&adc_current_buf[sample_count], 1, SPI_TIMEOUT_MS);
     if (status != HAL_OK) goto spi_error;
-    status = spi_receive_timeout((uint8_t *)&temp);
+    status = HAL_SPI_Receive(&hspi3, (uint8_t *)&temp, 1, SPI_TIMEOUT_MS);
     if (status != HAL_OK) goto spi_error;
-    status = spi_receive_timeout((uint8_t *)&adc_voltage_buf[sample_count]);
+    status = HAL_SPI_Receive(&hspi3, (uint8_t *)&adc_voltage_buf[sample_count], 1, SPI_TIMEOUT_MS);
     if (status != HAL_OK) goto spi_error;
 
     sample_count++;
