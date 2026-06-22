@@ -121,7 +121,6 @@ int main(void)
   /* ---------- 初始化用户模块 ---------- */
   led_indicator_init();           /* LED 初始常亮 */
   adc_ads8685_init();             /* 配置 ADS8685 ±10.24V + daisy chain */
-  uart_protocol_init();           /* 启动 UART 接收中断 */
   app_state_machine_init();       /* 状态机初始化为 IDLE */
 
   HAL_DWT_Init();                 /* 初始化 DWT Cycle Counter（用于 delay_us） */
@@ -130,6 +129,8 @@ int main(void)
 
 #if SELF_TEST
   evt_start_received = 1;         /* 模拟上位机发送 START 指令，自动触发 */
+#else
+  uart_protocol_init();           /* 启动 UART 接收中断（仅正常模式） */
 #endif
 
   /* USER CODE END 2 */
