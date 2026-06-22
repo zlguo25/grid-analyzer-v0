@@ -479,7 +479,19 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     }
     else if (htim->Instance == TIM3) {
         /* TIM3: 10Hz → 每 100ms 翻转 LED */
-        led_indicator_tick();
+        extern uint8_t spi_timeout_error;
+        extern uint8_t led_error_tick_count;
+
+        if (spi_timeout_error && led_error_tick_count > 0) {
+            /* SPI 超时错误 → LED1 快速闪烁（每 100ms 翻转即 5Hz） */
+            HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
+            led_error_tick_count--;
+            if (led_error_tick_count == 0) {
+                spi_timeout_error = 0;  /* 错误闪烁完毕，恢复正常 */
+            }
+        } else {
+            led_indicator_tick();
+        }
     }
 }
 

@@ -15,6 +15,7 @@ extern "C" {
 #include <stdint.h>
 
 extern SPI_HandleTypeDef hspi3;
+extern TIM_HandleTypeDef htim2;
 
 /* ---------- 采样参数 ---------- */
 #define ADC_SAMPLE_COUNT     16384                   /* 每通道采样点数 */
