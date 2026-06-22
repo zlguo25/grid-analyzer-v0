@@ -41,23 +41,15 @@ void app_state_machine_run(void)
             evt_sample_done = 0;
             HAL_TIM_Base_Stop_IT(&htim2);
 
-#if SELF_TEST
-            /* 自测：ADC 完成 → 立即回 IDLE */
+            /* 使用阻塞发送 — UART TX 无对端时也会走完，约 5.7s */
+            uart_protocol_send_data(adc_voltage_buf, adc_current_buf);
             led_indicator_set_mode(LED_MODE_HEARTBEAT_ONLY);
             current_state = STATE_IDLE;
-#else
-            uart_protocol_send_data(adc_voltage_buf, adc_current_buf);
-            current_state = STATE_DATA_TRANS;
-#endif
         }
         break;
 
     case STATE_DATA_TRANS:
-        if (evt_tx_done) {
-            evt_tx_done = 0;
-            led_indicator_set_mode(LED_MODE_HEARTBEAT_ONLY);
-            current_state = STATE_IDLE;
-        }
+        /* 不再使用此状态，保留用于向上兼容 */
         break;
 
     default:
