@@ -9,7 +9,7 @@
 /* ---------- 事件标志 ---------- */
 volatile uint8_t evt_sample_done = 0;
 volatile uint8_t adc_spi_timeout_error = 0;
-volatile uint8_t adc_led_error_tick_count = 0;
+volatile uint8_t adc_led_slow_tick = 0;
 
 /* ---------- 采样数据缓冲区 ---------- */
 uint16_t adc_voltage_buf[ADC_SAMPLE_COUNT];
@@ -44,7 +44,7 @@ void adc_ads8685_init(void)
     sample_count = 0;
     evt_sample_done = 0;
     adc_spi_timeout_error = 0;
-    adc_led_error_tick_count = 0;
+    adc_led_slow_tick = 0;
 }
 
 static HAL_StatusTypeDef spi_receive_timeout(uint8_t *pData)
@@ -102,5 +102,5 @@ spi_error:
     adc_spi_timeout_error = 1;
     evt_sample_done = 0;
     HAL_TIM_Base_Stop_IT(&htim2);
-    adc_led_error_tick_count = 10;
+    adc_led_slow_tick = 0;   /* 启动慢闪 */
 }

@@ -32,7 +32,7 @@ extern TIM_HandleTypeDef htim2;
 /* ---------- 事件标志 ---------- */
 extern volatile uint8_t evt_sample_done;
 extern volatile uint8_t adc_spi_timeout_error;     /* SPI 超时错误标志 */
-extern volatile uint8_t adc_led_error_tick_count;  /* LED 错误闪烁计数 */
+extern volatile uint8_t adc_led_slow_tick;         /* LED2 慢闪计数器 */
 
 /* ---------- 采样数据缓冲区 — 静态全局分配 (SRAM1) ---------- */
 extern uint16_t adc_voltage_buf[ADC_SAMPLE_COUNT];
