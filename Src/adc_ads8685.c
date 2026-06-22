@@ -26,8 +26,8 @@ static void adc_write_command(uint32_t cmd)
 {
     uint16_t high_word = (uint16_t)(cmd >> 16);
     uint16_t low_word  = (uint16_t)(cmd);
-    HAL_SPI_Transmit(&hspi3, (uint8_t *)&high_word, 1, SPI_TIMEOUT_MS);
-    HAL_SPI_Transmit(&hspi3, (uint8_t *)&low_word,  1, SPI_TIMEOUT_MS);
+    HAL_SPI_Transmit(&hspi3, (uint8_t *)&high_word, 1, HAL_MAX_DELAY);
+    HAL_SPI_Transmit(&hspi3, (uint8_t *)&low_word,  1, HAL_MAX_DELAY);
 }
 
 void adc_ads8685_init(void)
