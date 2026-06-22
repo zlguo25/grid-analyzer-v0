@@ -34,7 +34,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+/* SELF_TEST 宏已移至 Inc/main.h */
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -125,8 +125,12 @@ int main(void)
   app_state_machine_init();       /* 状态机初始化为 IDLE */
 
   HAL_DWT_Init();                 /* 初始化 DWT Cycle Counter（用于 delay_us） */
-  HAL_TIM_Base_Start_IT(&htim3);  /* 启动 TIM3 中断（10Hz，LED闪烁） */
+  HAL_TIM_Base_Start_IT(&htim3);  /* 启动 TIM3 中断（10Hz, LED闪烁） */
   /* TIM2 由状态机控制启停：进入 ADC_CONV 时启动，采集完成/DATA_TRANS 时停止 */
+
+#if SELF_TEST
+  evt_start_received = 1;         /* 模拟上位机发送 START 指令，自动触发 */
+#endif
 
   /* USER CODE END 2 */
 
