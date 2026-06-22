@@ -1,7 +1,7 @@
 /**
   ******************************************************************************
   * @file           : app_state_machine.c
-  * @brief          : 应用状态机实现 (自测版：ADC→直接IDLE)
+  * @brief          : 应用状态机 (IDLE→ADC_CONV→DATA_TRANS→IDLE)
   ******************************************************************************
   */
 #include "app_state_machine.h"
@@ -41,7 +41,15 @@ void app_state_machine_run(void)
             evt_sample_done = 0;
             HAL_TIM_Base_Stop_IT(&htim2);
 
-            /* 直接回 IDLE — 不发送 UART 数据，不等待 evt_tx_done */
+            /* 发送数据帧 (UART TX 阻塞约 5.7s) */
+            uart_protocol_send_data(adc_voltage_buf, adc_current_buf);
+            current_state = STATE_DATA_TRANS;
+        }
+        break;
+
+    case STATE_DATA_TRANS:
+        if (evt_tx_done) {
+            evt_tx_done = 0;
             led_indicator_set_mode(LED_MODE_HEARTBEAT_ONLY);
             current_state = STATE_IDLE;
         }
