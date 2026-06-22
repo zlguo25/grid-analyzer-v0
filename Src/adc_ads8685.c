@@ -49,15 +49,6 @@ void adc_ads8685_init(void)
 
 void adc_ads8685_read_sample(void)
 {
-#if SELF_TEST
-    sample_count++;
-    if (sample_count >= ADC_SAMPLE_COUNT) {
-        sample_count = 0;
-        evt_sample_done = 1;
-    }
-    return;
-#endif
-
     HAL_StatusTypeDef status;
     uint16_t temp;
 

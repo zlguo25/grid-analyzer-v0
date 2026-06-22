@@ -52,15 +52,9 @@ void app_state_machine_run(void)
             /* 停止 TIM2 */
             HAL_TIM_Base_Stop_IT(&htim2);
 
-#if SELF_TEST
-            /* 自测模式：跳过 UART 发送，直接回到 IDLE */
-            led_indicator_set_mode(LED_MODE_HEARTBEAT_ONLY);
-            current_state = STATE_IDLE;
-#else
             /* 发送数据帧 */
             uart_protocol_send_data(adc_voltage_buf, adc_current_buf);
             current_state = STATE_DATA_TRANS;
-#endif
         }
         break;
 

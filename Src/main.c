@@ -127,10 +127,9 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim3);  /* 启动 TIM3 中断（10Hz, LED闪烁） */
   /* TIM2 由状态机控制启停：进入 ADC_CONV 时启动，采集完成/DATA_TRANS 时停止 */
 
+  uart_protocol_init();           /* 启动 UART 接收中断 */
 #if SELF_TEST
-  evt_start_received = 1;         /* 模拟上位机发送 START 指令，自动触发 */
-#else
-  uart_protocol_init();           /* 启动 UART 接收中断（仅正常模式） */
+  evt_start_received = 1;         /* 模拟上位机发送 START 指令，自动触发采集 */
 #endif
 
   /* USER CODE END 2 */
