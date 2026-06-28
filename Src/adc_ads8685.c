@@ -42,8 +42,8 @@ void adc_ads8685_init(void)
 
 void adc_ads8685_read_sample(void)
 {
-    uint16_t temp;
-    uint16_t dummy = 0x0000;
+    uint16_t tx_buf[4] = {0, 0, 0, 0};  /* 4×16-bit = 64 SCLK */
+    uint16_t rx_buf[4];
     HAL_StatusTypeDef status;
 
     if (adc_spi_timeout_error) return;
@@ -52,18 +52,12 @@ void adc_ads8685_read_sample(void)
     delay_us(1);
     HAL_GPIO_WritePin(CONVST_GPIO_Port, CONVST_Pin, GPIO_PIN_RESET);
 
-    /* 全双工模式：发送 dummy 产生 SCLK，同时读回 MISO
-     * 使用 HAL_MAX_DELAY：在 TIM2 ISR 中 HAL_GetTick() 无法递增，
-     * 但 HAL_MAX_DELAY 跳过超时检查，仅忙等 RXNE 标志。
-     * 4 个 16-bit 字在 10.625MHz 下约 6µs 即可完成。 */
-    status = HAL_SPI_TransmitReceive(&hspi3, (uint8_t *)&dummy, (uint8_t *)&temp, 1, HAL_MAX_DELAY);
+    /* 一次收发 4 个 16-bit 字，正好产生 64 个 SCLK 周期 */
+    status = HAL_SPI_TransmitReceive(&hspi3, (uint8_t *)tx_buf, (uint8_t *)rx_buf, 4, HAL_MAX_DELAY);
     if (status != HAL_OK) goto spi_error;
-    status = HAL_SPI_TransmitReceive(&hspi3, (uint8_t *)&dummy, (uint8_t *)&adc_current_buf[sample_count], 1, HAL_MAX_DELAY);
-    if (status != HAL_OK) goto spi_error;
-    status = HAL_SPI_TransmitReceive(&hspi3, (uint8_t *)&dummy, (uint8_t *)&temp, 1, HAL_MAX_DELAY);
-    if (status != HAL_OK) goto spi_error;
-    status = HAL_SPI_TransmitReceive(&hspi3, (uint8_t *)&dummy, (uint8_t *)&adc_voltage_buf[sample_count], 1, HAL_MAX_DELAY);
-    if (status != HAL_OK) goto spi_error;
+
+    adc_current_buf[sample_count] = rx_buf[1];
+    adc_voltage_buf[sample_count] = rx_buf[3];
 
     sample_count++;
     if (sample_count >= ADC_SAMPLE_COUNT) {
