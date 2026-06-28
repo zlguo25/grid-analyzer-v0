@@ -14,7 +14,6 @@ uint16_t adc_voltage_buf[ADC_SAMPLE_COUNT];
 uint16_t adc_current_buf[ADC_SAMPLE_COUNT];
 
 static uint32_t sample_count = 0;
-#define SPI_TIMEOUT_CYCLES  170000000U / 100U   /* 10ms @ 170MHz */
 
 static void adc_write_command(uint32_t cmd)
 {
@@ -41,31 +40,30 @@ void adc_ads8685_init(void)
     adc_led_slow_tick = 0;
 }
 
-static int spi_rx16_dwt(uint16_t *data)
-{
-    uint32_t start = DWT->CYCCNT;
-    /* 写 DR 产生 16 SCLK */
-    *((__IO uint16_t *)&hspi3.Instance->DR) = 0x0000;
-    while (!(__HAL_SPI_GET_FLAG(&hspi3, SPI_FLAG_RXNE))) {
-        if ((DWT->CYCCNT - start) > SPI_TIMEOUT_CYCLES) return 0;
-    }
-    *data = (uint16_t)hspi3.Instance->DR;
-    return 1;
-}
-
 void adc_ads8685_read_sample(void)
 {
     uint16_t temp;
+    uint16_t dummy = 0x0000;
+    HAL_StatusTypeDef status;
+
     if (adc_spi_timeout_error) return;
 
     HAL_GPIO_WritePin(CONVST_GPIO_Port, CONVST_Pin, GPIO_PIN_SET);
     delay_us(1);
     HAL_GPIO_WritePin(CONVST_GPIO_Port, CONVST_Pin, GPIO_PIN_RESET);
 
-    if (!spi_rx16_dwt(&temp)) goto spi_error;
-    if (!spi_rx16_dwt(&adc_current_buf[sample_count])) goto spi_error;
-    if (!spi_rx16_dwt(&temp)) goto spi_error;
-    if (!spi_rx16_dwt(&adc_voltage_buf[sample_count])) goto spi_error;
+    /* 全双工模式：发送 dummy 产生 SCLK，同时读回 MISO
+     * 使用 HAL_MAX_DELAY：在 TIM2 ISR 中 HAL_GetTick() 无法递增，
+     * 但 HAL_MAX_DELAY 跳过超时检查，仅忙等 RXNE 标志。
+     * 4 个 16-bit 字在 10.625MHz 下约 6µs 即可完成。 */
+    status = HAL_SPI_TransmitReceive(&hspi3, (uint8_t *)&dummy, (uint8_t *)&temp, 1, HAL_MAX_DELAY);
+    if (status != HAL_OK) goto spi_error;
+    status = HAL_SPI_TransmitReceive(&hspi3, (uint8_t *)&dummy, (uint8_t *)&adc_current_buf[sample_count], 1, HAL_MAX_DELAY);
+    if (status != HAL_OK) goto spi_error;
+    status = HAL_SPI_TransmitReceive(&hspi3, (uint8_t *)&dummy, (uint8_t *)&temp, 1, HAL_MAX_DELAY);
+    if (status != HAL_OK) goto spi_error;
+    status = HAL_SPI_TransmitReceive(&hspi3, (uint8_t *)&dummy, (uint8_t *)&adc_voltage_buf[sample_count], 1, HAL_MAX_DELAY);
+    if (status != HAL_OK) goto spi_error;
 
     sample_count++;
     if (sample_count >= ADC_SAMPLE_COUNT) {
