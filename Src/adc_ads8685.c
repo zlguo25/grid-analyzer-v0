@@ -15,23 +15,35 @@ uint16_t adc_current_buf[ADC_SAMPLE_COUNT];
 
 static uint32_t sample_count = 0;
 
-static void adc_write_command(uint32_t cmd)
+/**
+ * @brief 向菊花链中的两个 ADS8685 写入配置命令
+ * @param cmd_near 近端芯片（靠近 MCU）收到的 32-bit 命令
+ * @param cmd_far  远端芯片（远离 MCU）收到的 32-bit 命令
+ *
+ * 发送顺序：cmd_far 高 16 → cmd_far 低 16 → cmd_near 高 16 → cmd_near 低 16
+ * 当 CONVST 上升沿锁存时，先进入链的 32 bits 到达远端芯片，后进入的到达近端芯片。
+ */
+static void adc_write_command(uint32_t cmd_near, uint32_t cmd_far)
 {
-    uint16_t high_word = (uint16_t)(cmd >> 16);
-    uint16_t low_word  = (uint16_t)(cmd);
-    HAL_SPI_Transmit(&hspi3, (uint8_t *)&high_word, 1, HAL_MAX_DELAY);
-    HAL_SPI_Transmit(&hspi3, (uint8_t *)&low_word,  1, HAL_MAX_DELAY);
+    uint16_t words[4];
+    words[0] = (uint16_t)(cmd_far >> 16);   /* 远端芯片命令高 16-bit */
+    words[1] = (uint16_t)(cmd_far);         /* 远端芯片命令低 16-bit */
+    words[2] = (uint16_t)(cmd_near >> 16);  /* 近端芯片命令高 16-bit */
+    words[3] = (uint16_t)(cmd_near);        /* 近端芯片命令低 16-bit */
+    HAL_SPI_Transmit(&hspi3, (uint8_t *)words, 4, HAL_MAX_DELAY);
 }
 
 void adc_ads8685_init(void)
 {
     HAL_Delay(20);
     HAL_GPIO_WritePin(CONVST_GPIO_Port, CONVST_Pin, GPIO_PIN_RESET);
-    adc_write_command(CMD_RANGE_10V24);
+    /* 两个芯片都配置为 ±10.24V 量程 */
+    adc_write_command(CMD_RANGE_10V24, CMD_RANGE_10V24);
     HAL_GPIO_WritePin(CONVST_GPIO_Port, CONVST_Pin, GPIO_PIN_SET);
     HAL_Delay(1);
     HAL_GPIO_WritePin(CONVST_GPIO_Port, CONVST_Pin, GPIO_PIN_RESET);
-    adc_write_command(CMD_SDO_DEFAULT);
+    /* 两个芯片都配置 SDO_CTL = 0x00（daisy chain 默认） */
+    adc_write_command(CMD_SDO_DEFAULT, CMD_SDO_DEFAULT);
     HAL_GPIO_WritePin(CONVST_GPIO_Port, CONVST_Pin, GPIO_PIN_SET);
     HAL_GPIO_WritePin(CONVST_GPIO_Port, CONVST_Pin, GPIO_PIN_RESET);
     sample_count = 0;
