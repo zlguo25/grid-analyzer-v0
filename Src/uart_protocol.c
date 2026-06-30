@@ -87,47 +87,64 @@ void uart_protocol_rx_callback(void)
 void uart_protocol_send_data(const uint16_t *voltage_buf, const uint16_t *current_buf)
 {
     uint8_t  send_buf[TX_CHUNK_SIZE];
-    uint16_t chunk_bytes;
-    uint8_t  checksum = 0;
-    uint32_t i;
     const uint32_t data_len = (uint32_t)SAMPLE_COUNT * 2U * 2U;  /* 65536 */
 
-    /* ---- 帧头 + 类型 + 长度 (6 bytes) ---- */
-    send_buf[0] = DATA_FRAME_HEADER_H;
-    send_buf[1] = DATA_FRAME_HEADER_L;
-    send_buf[2] = (uint8_t)(DATA_FRAME_TYPE);
-    send_buf[3] = (uint8_t)(DATA_FRAME_TYPE >> 8);
-    send_buf[4] = (uint8_t)(data_len);
-    send_buf[5] = (uint8_t)(data_len >> 8);
-    HAL_UART_Transmit(&hlpuart1, send_buf, 6U, 60000U);  /* 6B @ 115200 ≈ 0.5ms, 60s timeout safe */
-    checksum = uart_calc_checksum(send_buf, 6U);
-
-    /* ---- 电压数据 (32768 bytes) ---- */
-    for (i = 0; i < SAMPLE_COUNT; i++) {
-        send_buf[(i % (TX_CHUNK_SIZE / 2U)) * 2U]     = (uint8_t)(voltage_buf[i]);
-        send_buf[(i % (TX_CHUNK_SIZE / 2U)) * 2U + 1U] = (uint8_t)(voltage_buf[i] >> 8);
-
-        if ((i + 1U) % (TX_CHUNK_SIZE / 2U) == 0 || i == SAMPLE_COUNT - 1U) {
-            chunk_bytes = ((i % (TX_CHUNK_SIZE / 2U)) + 1U) * 2U;
-            HAL_UART_Transmit(&hlpuart1, send_buf, chunk_bytes, HAL_MAX_DELAY);
-            checksum ^= uart_calc_checksum(send_buf, chunk_bytes);
+#if SELF_TEST
+    /* ---- 测试模式：全部发送 0x55 ---- */
+    {
+        uint32_t total_test_bytes = 6U + data_len + 1U;  /* 65543 bytes */
+        uint32_t sent = 0;
+        memset(send_buf, 0x55, TX_CHUNK_SIZE);
+        while (sent < total_test_bytes) {
+            uint16_t chunk = (total_test_bytes - sent > TX_CHUNK_SIZE) ? TX_CHUNK_SIZE : (uint16_t)(total_test_bytes - sent);
+            HAL_UART_Transmit(&hlpuart1, send_buf, chunk, HAL_MAX_DELAY);
+            sent += chunk;
         }
     }
+#else
+    {
+        uint16_t chunk_bytes;
+        uint8_t  checksum = 0;
+        uint32_t i;
 
-    /* ---- 电流数据 (32768 bytes) ---- */
-    for (i = 0; i < SAMPLE_COUNT; i++) {
-        send_buf[(i % (TX_CHUNK_SIZE / 2U)) * 2U]     = (uint8_t)(current_buf[i]);
-        send_buf[(i % (TX_CHUNK_SIZE / 2U)) * 2U + 1U] = (uint8_t)(current_buf[i] >> 8);
+        /* ---- 帧头 + 类型 + 长度 (6 bytes) ---- */
+        send_buf[0] = DATA_FRAME_HEADER_H;
+        send_buf[1] = DATA_FRAME_HEADER_L;
+        send_buf[2] = (uint8_t)(DATA_FRAME_TYPE);
+        send_buf[3] = (uint8_t)(DATA_FRAME_TYPE >> 8);
+        send_buf[4] = (uint8_t)(data_len);
+        send_buf[5] = (uint8_t)(data_len >> 8);
+        HAL_UART_Transmit(&hlpuart1, send_buf, 6U, 60000U);  /* 6B @ 115200 ≈ 0.5ms, 60s timeout safe */
+        checksum = uart_calc_checksum(send_buf, 6U);
 
-        if ((i + 1U) % (TX_CHUNK_SIZE / 2U) == 0 || i == SAMPLE_COUNT - 1U) {
-            chunk_bytes = ((i % (TX_CHUNK_SIZE / 2U)) + 1U) * 2U;
-            HAL_UART_Transmit(&hlpuart1, send_buf, chunk_bytes, HAL_MAX_DELAY);
-            checksum ^= uart_calc_checksum(send_buf, chunk_bytes);
+        /* ---- 电压数据 (32768 bytes) ---- */
+        for (i = 0; i < SAMPLE_COUNT; i++) {
+            send_buf[(i % (TX_CHUNK_SIZE / 2U)) * 2U]     = (uint8_t)(voltage_buf[i]);
+            send_buf[(i % (TX_CHUNK_SIZE / 2U)) * 2U + 1U] = (uint8_t)(voltage_buf[i] >> 8);
+
+            if ((i + 1U) % (TX_CHUNK_SIZE / 2U) == 0 || i == SAMPLE_COUNT - 1U) {
+                chunk_bytes = ((i % (TX_CHUNK_SIZE / 2U)) + 1U) * 2U;
+                HAL_UART_Transmit(&hlpuart1, send_buf, chunk_bytes, HAL_MAX_DELAY);
+                checksum ^= uart_calc_checksum(send_buf, chunk_bytes);
+            }
         }
-    }
 
-    /* ---- checksum (1 byte) ---- */
-    HAL_UART_Transmit(&hlpuart1, &checksum, 1U, HAL_MAX_DELAY);
+        /* ---- 电流数据 (32768 bytes) ---- */
+        for (i = 0; i < SAMPLE_COUNT; i++) {
+            send_buf[(i % (TX_CHUNK_SIZE / 2U)) * 2U]     = (uint8_t)(current_buf[i]);
+            send_buf[(i % (TX_CHUNK_SIZE / 2U)) * 2U + 1U] = (uint8_t)(current_buf[i] >> 8);
+
+            if ((i + 1U) % (TX_CHUNK_SIZE / 2U) == 0 || i == SAMPLE_COUNT - 1U) {
+                chunk_bytes = ((i % (TX_CHUNK_SIZE / 2U)) + 1U) * 2U;
+                HAL_UART_Transmit(&hlpuart1, send_buf, chunk_bytes, HAL_MAX_DELAY);
+                checksum ^= uart_calc_checksum(send_buf, chunk_bytes);
+            }
+        }
+
+        /* ---- checksum (1 byte) ---- */
+        HAL_UART_Transmit(&hlpuart1, &checksum, 1U, HAL_MAX_DELAY);
+    }
+#endif
 
     /* 发送完成 */
     evt_tx_done = 1;
