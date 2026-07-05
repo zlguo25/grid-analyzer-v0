@@ -92,15 +92,17 @@ void uart_protocol_send_data(const uint16_t *voltage_buf, const uint16_t *curren
     uint8_t  checksum = 0;
     uint32_t i;
 
-    /* ---- 帧头 + 类型 + 长度 (6 bytes) ---- */
+    /* ---- 帧头 + 类型 + 长度 (8 bytes) ---- */
     send_buf[0] = DATA_FRAME_HEADER_H;
     send_buf[1] = DATA_FRAME_HEADER_L;
     send_buf[2] = (uint8_t)(DATA_FRAME_TYPE);
     send_buf[3] = (uint8_t)(DATA_FRAME_TYPE >> 8);
     send_buf[4] = (uint8_t)(data_len);
     send_buf[5] = (uint8_t)(data_len >> 8);
-    HAL_UART_Transmit(&hlpuart1, send_buf, 6U, 60000U);  /* 6B @ 115200 ≈ 0.5ms, 60s timeout safe */
-    checksum = uart_calc_checksum(send_buf, 6U);
+    send_buf[6] = (uint8_t)(data_len >> 16);
+    send_buf[7] = (uint8_t)(data_len >> 24);
+    HAL_UART_Transmit(&hlpuart1, send_buf, 8U, 60000U);
+    checksum = uart_calc_checksum(send_buf, 8U);
 
     /* ---- 电压数据 (32768 bytes) ---- */
     for (i = 0; i < SAMPLE_COUNT; i++) {

@@ -26,7 +26,7 @@ extern UART_HandleTypeDef hlpuart1;
 #define DATA_FRAME_HEADER_H   0xBB
 #define DATA_FRAME_HEADER_L   0xBB
 #define DATA_FRAME_TYPE       0x0001
-#define DATA_FRAME_HEADER_LEN 6U      /* 帧头2 + 类型2 + 长度2 */
+#define DATA_FRAME_HEADER_LEN 8U      /* 帧头2 + 类型2 + 长度4 */
 #define SAMPLE_COUNT          16384
 
 /* 上位机 → MCU: [0xAA] [CMD] [PARAM] [CHECKSUM] */
