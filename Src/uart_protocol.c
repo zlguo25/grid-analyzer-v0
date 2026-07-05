@@ -109,13 +109,16 @@ void uart_protocol_send_data(const uint16_t *voltage_buf, const uint16_t *curren
     send_buf[10] = (uint8_t)(DATA_ATTR_SAMPLE_RATE >> 16);
     send_buf[11] = (uint8_t)(DATA_ATTR_SAMPLE_RATE >> 24);
     
-    /* 采样时长 500000 = 0x7A120 (小端序: 20 A1 07 00 00 00) */
-    send_buf[12] = 0x20;  /* 500000 & 0xFF */
-    send_buf[13] = 0xA1;  /* (500000 >> 8) & 0xFF */
-    send_buf[14] = 0x07;  /* (500000 >> 16) & 0xFF */
-    send_buf[15] = 0x00;  /* (500000 >> 24) & 0xFF */
-    send_buf[16] = 0x00;  /* (500000 >> 32) & 0xFF */
-    send_buf[17] = 0x00;  /* (500000 >> 40) & 0xFF */
+    /* 采样时长：使用宏定义计算字节值 */
+    {
+        uint64_t sample_time = DATA_ATTR_SAMPLE_TIME_US;  /* 500000 */
+        send_buf[12] = (uint8_t)(sample_time);
+        send_buf[13] = (uint8_t)(sample_time >> 8);
+        send_buf[14] = (uint8_t)(sample_time >> 16);
+        send_buf[15] = (uint8_t)(sample_time >> 24);
+        send_buf[16] = (uint8_t)(sample_time >> 32);
+        send_buf[17] = (uint8_t)(sample_time >> 40);
+    }
     
     send_buf[18] = DATA_ATTR_CHANNEL_NUM;
     
