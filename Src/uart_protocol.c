@@ -92,7 +92,8 @@ void uart_protocol_send_data(const uint16_t *voltage_buf, const uint16_t *curren
     uint8_t  checksum = 0;
     uint32_t i;
 
-    /* ---- 帧头 + 类型 + 长度 (8 bytes) ---- */
+    /* ---- 扩展帧头 (32 bytes) ---- */
+    /* 基础区：帧头(2) + 类型(2) + 长度(4) = 8B */
     send_buf[0] = DATA_FRAME_HEADER_H;
     send_buf[1] = DATA_FRAME_HEADER_L;
     send_buf[2] = (uint8_t)(DATA_FRAME_TYPE);
@@ -101,8 +102,30 @@ void uart_protocol_send_data(const uint16_t *voltage_buf, const uint16_t *curren
     send_buf[5] = (uint8_t)(data_len >> 8);
     send_buf[6] = (uint8_t)(data_len >> 16);
     send_buf[7] = (uint8_t)(data_len >> 24);
-    HAL_UART_Transmit(&hlpuart1, send_buf, 8U, 60000U);
-    checksum = uart_calc_checksum(send_buf, 8U);
+    
+    /* 属性区：采样率(4) + 采样时长(6) + 通道数(1) = 11B */
+    send_buf[8]  = (uint8_t)(DATA_ATTR_SAMPLE_RATE);
+    send_buf[9]  = (uint8_t)(DATA_ATTR_SAMPLE_RATE >> 8);
+    send_buf[10] = (uint8_t)(DATA_ATTR_SAMPLE_RATE >> 16);
+    send_buf[11] = (uint8_t)(DATA_ATTR_SAMPLE_RATE >> 24);
+    
+    {
+        uint64_t sample_time = DATA_ATTR_SAMPLE_TIME_US;
+        send_buf[12] = (uint8_t)(sample_time);
+        send_buf[13] = (uint8_t)(sample_time >> 8);
+        send_buf[14] = (uint8_t)(sample_time >> 16);
+        send_buf[15] = (uint8_t)(sample_time >> 24);
+        send_buf[16] = (uint8_t)(sample_time >> 32);
+        send_buf[17] = (uint8_t)(sample_time >> 40);
+    }
+    
+    send_buf[18] = DATA_ATTR_CHANNEL_NUM;
+    
+    /* 保留区：13B (bytes 19-31) */
+    memset(&send_buf[19], 0, 13);
+    
+    HAL_UART_Transmit(&hlpuart1, send_buf, DATA_FRAME_HEADER_LEN, 60000U);
+    checksum = uart_calc_checksum(send_buf, DATA_FRAME_HEADER_LEN);
 
     /* ---- 电压数据 (32768 bytes) ---- */
     for (i = 0; i < SAMPLE_COUNT; i++) {

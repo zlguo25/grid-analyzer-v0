@@ -26,8 +26,13 @@ extern UART_HandleTypeDef hlpuart1;
 #define DATA_FRAME_HEADER_H   0xBB
 #define DATA_FRAME_HEADER_L   0xBB
 #define DATA_FRAME_TYPE       0x0001
-#define DATA_FRAME_HEADER_LEN 8U      /* 帧头2 + 类型2 + 长度4 */
+#define DATA_FRAME_HEADER_LEN 32U     /* 扩展帧头：基础8B + 属性11B + 保留13B */
 #define SAMPLE_COUNT          16384
+
+/* ---------- 采样属性（帧头扩展区） ---------- */
+#define DATA_ATTR_SAMPLE_RATE    32768U        /* 采样率：32768 Hz */
+#define DATA_ATTR_SAMPLE_TIME_US 500000UL      /* 采样时长：500000 µs = 0.5s */
+#define DATA_ATTR_CHANNEL_NUM    2U            /* 通道数量：2（电压+电流） */
 
 /* 上位机 → MCU: [0xAA] [CMD] [PARAM] [CHECKSUM] */
 
