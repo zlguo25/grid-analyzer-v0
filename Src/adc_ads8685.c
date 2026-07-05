@@ -72,10 +72,10 @@ void adc_ads8685_read_sample(void)
     status = HAL_SPI_TransmitReceive(&hspi3, (uint8_t *)tx_buf, (uint8_t *)rx_buf, 4, HAL_MAX_DELAY);
     if (status != HAL_OK) goto spi_error;
 
-    /* 每个芯片返回 32-bit 帧：高 16-bit 丢弃，低 16-bit 为 ADC 数据
+    /* 每个芯片返回 32-bit 帧：先收到的 16-bit 为 ADC 数据，后 16-bit 丢弃
      * 先收到电流（近端芯片），后收到电压（远端芯片） */
-    adc_current_buf[sample_count] = rx_buf[1];  /* 电流：第 2 个 16-bit 字 */
-    adc_voltage_buf[sample_count] = rx_buf[3];  /* 电压：第 4 个 16-bit 字 */
+    adc_current_buf[sample_count] = rx_buf[0];  /* 电流：第 1 个 16-bit 字 */
+    adc_voltage_buf[sample_count] = rx_buf[2];  /* 电压：第 3 个 16-bit 字 */
 
     sample_count++;
     if (sample_count >= ADC_SAMPLE_COUNT) {
