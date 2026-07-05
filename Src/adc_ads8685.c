@@ -54,8 +54,8 @@ void adc_ads8685_init(void)
 
 void adc_ads8685_read_sample(void)
 {
-    uint16_t tx_buf[2] = {0, 0};  /* 2×16-bit = 32 SCLK，对应两个芯片各 16-bit ADC 数据 */
-    uint16_t rx_buf[2];
+    uint16_t tx_buf[4] = {0, 0, 0, 0};  /* 4×16-bit = 64 SCLK，对应 2 个芯片各 32-bit 数据帧 */
+    uint16_t rx_buf[4];
     HAL_StatusTypeDef status;
 
     if (adc_spi_timeout_error) return;
@@ -68,14 +68,15 @@ void adc_ads8685_read_sample(void)
     HAL_GPIO_WritePin(CONVST_GPIO_Port, CONVST_Pin, GPIO_PIN_RESET);
     delay_us(1);  /* t_CSSD：等待 SDO 有效 */
 
-    /* 全双工读取 32 个 SCLK（两个 16-bit ADC 结果） */
-    status = HAL_SPI_TransmitReceive(&hspi3, (uint8_t *)tx_buf, (uint8_t *)rx_buf, 2, HAL_MAX_DELAY);
+    /* 全双工读取 64 个 SCLK（两个 32-bit 数据帧） */
+    status = HAL_SPI_TransmitReceive(&hspi3, (uint8_t *)tx_buf, (uint8_t *)rx_buf, 4, HAL_MAX_DELAY);
     if (status != HAL_OK) goto spi_error;
 
-    /* 菊花链读取顺序：先收到远端芯片数据，后收到近端芯片数据
+    /* 每个芯片返回 32-bit 帧，其中 16-bit 为 ADC 数据
+     * 远端芯片数据在前，近端芯片数据在后
      * 若映射相反，请交换下面两行 */
-    adc_voltage_buf[sample_count] = rx_buf[0];  /* 远端芯片 → 电压通道 */
-    adc_current_buf[sample_count] = rx_buf[1];  /* 近端芯片 → 电流通道 */
+    adc_voltage_buf[sample_count] = rx_buf[1];  /* 远端芯片 ADC 数据 */
+    adc_current_buf[sample_count] = rx_buf[3];  /* 近端芯片 ADC 数据 */
 
     sample_count++;
     if (sample_count >= ADC_SAMPLE_COUNT) {
