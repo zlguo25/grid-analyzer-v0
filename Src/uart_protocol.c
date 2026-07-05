@@ -110,13 +110,12 @@ void uart_protocol_send_data(const uint16_t *voltage_buf, const uint16_t *curren
     send_buf[11] = (uint8_t)(DATA_ATTR_SAMPLE_RATE >> 24);
     
     /* 采样时长 500000 = 0x7A120 (小端序: 20 A1 07 00 00 00) */
-    /* 版本标记：如果收到 DE AD BE EF CA FE，说明是新固件 */
-    send_buf[12] = 0xDE;  /* 版本标记字节0 */
-    send_buf[13] = 0xAD;  /* 版本标记字节1 */
-    send_buf[14] = 0xBE;  /* 版本标记字节2 */
-    send_buf[15] = 0xEF;  /* 版本标记字节3 */
-    send_buf[16] = 0xCA;  /* 版本标记字节4 */
-    send_buf[17] = 0xFE;  /* 版本标记字节5 */
+    send_buf[12] = 0x20;  /* 500000 & 0xFF */
+    send_buf[13] = 0xA1;  /* (500000 >> 8) & 0xFF */
+    send_buf[14] = 0x07;  /* (500000 >> 16) & 0xFF */
+    send_buf[15] = 0x00;  /* (500000 >> 24) & 0xFF */
+    send_buf[16] = 0x00;  /* (500000 >> 32) & 0xFF */
+    send_buf[17] = 0x00;  /* (500000 >> 40) & 0xFF */
     
     send_buf[18] = DATA_ATTR_CHANNEL_NUM;
     
