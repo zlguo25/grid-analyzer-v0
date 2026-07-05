@@ -31,7 +31,7 @@ extern UART_HandleTypeDef hlpuart1;
 
 /* ---------- 采样属性（帧头扩展区） ---------- */
 #define DATA_ATTR_SAMPLE_RATE    32768U        /* 采样率：32768 Hz */
-#define DATA_ATTR_SAMPLE_TIME_US 500000UL      /* 采样时长：500000 µs = 0.5s */
+#define DATA_ATTR_SAMPLE_TIME_US 500000ULL     /* 采样时长：500000 µs = 0.5s */
 #define DATA_ATTR_CHANNEL_NUM    2U            /* 通道数量：2（电压+电流） */
 
 /* 上位机 → MCU: [0xAA] [CMD] [PARAM] [CHECKSUM] */
