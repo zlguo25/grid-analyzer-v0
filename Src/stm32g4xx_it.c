@@ -190,7 +190,9 @@ void LPUART1_IRQHandler(void)
   /* IDLE 中断：一帧数据接收完成 */
   if ((isrflags & USART_ISR_IDLE) && (cr1its & USART_CR1_IDLEIE)) {
       __HAL_UART_CLEAR_IDLEFLAG(&hlpuart1);
-      /* 帧接收完成，将在主循环中处理 */
+      /* 帧接收完成，设置标志供主循环处理 */
+      extern volatile uint8_t rx_ready;
+      rx_ready = 1;
   }
   /* USER CODE END LPUART1_IRQn 0 */
   

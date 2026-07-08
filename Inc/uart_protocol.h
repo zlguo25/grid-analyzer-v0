@@ -44,6 +44,7 @@ extern UART_HandleTypeDef hlpuart1;
 /* ---------- 外部可见变量 — 事件标志 ---------- */
 extern volatile uint8_t evt_start_received;
 extern volatile uint8_t evt_tx_done;
+extern volatile uint8_t rx_ready;  /* UART接收就绪标志 */
 
 /* ---------- API ---------- */
 

@@ -12,7 +12,8 @@ volatile uint8_t evt_tx_done        = 0;
 
 /* ---------- 接收缓冲区 ---------- */
 static uint8_t  rx_buf[16];                  /* UART接收缓冲 */
-static uint8_t  rx_len = 0;                  /* 接收到的数据长度 */
+static volatile uint8_t  rx_len = 0;         /* 接收到的数据长度（volatile用于中断同步） */
+static volatile uint8_t  rx_ready = 0;       /* 数据就绪标志 */
 
 #define TX_CHUNK_SIZE  256U   /* 每次阻塞发送的字节数 */
 
@@ -85,15 +86,22 @@ void uart_protocol_init(void)
     __HAL_UART_ENABLE_IT(&hlpuart1, UART_IT_RXNE);
 }
 
+/* 导出 rx_ready 供中断使用 */
+volatile uint8_t* uart_protocol_get_rx_ready_flag(void)
+{
+    return &rx_ready;
+}
+
 /**
   * @brief  UART 接收处理 - 从主循环调用
   */
 void uart_protocol_rx_process(void)
 {
-    if (rx_len > 0) {
+    if (rx_ready && rx_len >= CMD_FRAME_LEN) {
         /* 处理接收到的数据 */
         process_cmd_frame(rx_buf, rx_len);
-        rx_len = 0;  /* 清空缓冲区 */
+        rx_len = 0;      /* 清空缓冲区 */
+        rx_ready = 0;    /* 清除标志 */
     }
 }
 
