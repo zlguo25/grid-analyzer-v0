@@ -112,6 +112,12 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  
+  /* 固件版本标记：上电后 LED2 常亮 3 秒，确认新固件已运行 */
+  HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);  /* LED2 亮（低电平） */
+  HAL_Delay(3000);  /* 延时 3 秒 */
+  HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);    /* LED2 灭 */
+  
   MX_LPUART1_UART_Init();
   MX_RTC_Init();
   MX_SPI3_Init();
