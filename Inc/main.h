@@ -65,7 +65,7 @@ void Error_Handler(void);
 #define LED1_GPIO_Port GPIOD
 
 /* USER CODE BEGIN Private defines */
-#define SELF_TEST  1   /* 1=自测模式(无需UART/ADC硬件), 0=正常模式 */
+#define SELF_TEST  0   /* 1=自测模式(无需UART/ADC硬件), 0=正常模式 */
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus
