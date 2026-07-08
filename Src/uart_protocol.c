@@ -13,7 +13,7 @@ volatile uint8_t evt_tx_done        = 0;
 /* ---------- 接收缓冲区 ---------- */
 static uint8_t  rx_buf[16];                  /* UART接收缓冲 */
 static volatile uint8_t  rx_len = 0;         /* 接收到的数据长度（volatile用于中断同步） */
-static volatile uint8_t  rx_ready = 0;       /* 数据就绪标志 */
+volatile uint8_t  rx_ready = 0;              /* 数据就绪标志（非static，供中断使用） */
 
 #define TX_CHUNK_SIZE  256U   /* 每次阻塞发送的字节数 */
 
