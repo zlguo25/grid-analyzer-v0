@@ -49,6 +49,12 @@ void uart_protocol_init(void)
 void uart_protocol_rx_callback(void)
 {
     uint8_t cs;
+    static uint8_t start_blink_cnt = 0;
+
+    /* LED 调试：每收到一个字节短闪一次 */
+    HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
+    for (volatile int i = 0; i < 5000; i++);  /* 约 50ms 延时 */
+    HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
 
     cmd_buf[cmd_buf_idx++] = rx_byte;
 
@@ -72,6 +78,13 @@ void uart_protocol_rx_callback(void)
         /* 解析指令 */
         if (cmd_buf[1] == CMD_START) {
             evt_start_received = 1;
+            /* LED 调试：收到 START 后快闪 3 次 */
+            for (start_blink_cnt = 0; start_blink_cnt < 3; start_blink_cnt++) {
+                HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
+                for (volatile int i = 0; i < 10000; i++);  /* 约 100ms */
+                HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
+                for (volatile int i = 0; i < 10000; i++);  /* 约 100ms */
+            }
         }
         /* CMD_STOP 由状态机处理 */
     }
