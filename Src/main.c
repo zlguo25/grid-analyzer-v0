@@ -246,7 +246,9 @@ static void MX_LPUART1_UART_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN LPUART1_Init 2 */
-
+  /* 使能 NVIC UART 中断 */
+  HAL_NVIC_SetPriority(LPUART1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(LPUART1_IRQn);
   /* USER CODE END LPUART1_Init 2 */
 
 }
