@@ -54,10 +54,14 @@ extern volatile uint8_t evt_tx_done;
 void uart_protocol_init(void);
 
 /**
-  * @brief  UART 接收中断回调处理
-  * @note   由 HAL_UART_RxCpltCallback 调用
+  * @brief  向接收缓冲区添加数据（由中断调用）
   */
-void uart_protocol_rx_callback(void);
+void uart_protocol_rx_byte(uint8_t data);
+
+/**
+  * @brief  UART 接收处理（从主循环调用）
+  */
+void uart_protocol_rx_process(void);
 
 /**
   * @brief  组装数据帧，通过 UART 发送

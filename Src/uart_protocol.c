@@ -11,7 +11,9 @@ volatile uint8_t evt_start_received = 0;
 volatile uint8_t evt_tx_done        = 0;
 
 /* ---------- 接收缓冲区 ---------- */
-static uint8_t  rx_byte;                     /* HAL_UART_Receive_IT 接收的单字节 */
+static uint8_t  rx_buf[8];                   /* 环形接收缓冲 */
+static uint8_t  rx_head = 0;
+static uint8_t  rx_tail = 0;
 static uint8_t  cmd_buf[CMD_FRAME_LEN];      /* 指令帧拼装缓冲 */
 static uint8_t  cmd_buf_idx = 0;
 
@@ -36,27 +38,29 @@ uint8_t uart_calc_checksum(const uint8_t *data, uint16_t len)
 void uart_protocol_init(void)
 {
     cmd_buf_idx = 0;
+    rx_head = 0;
+    rx_tail = 0;
     evt_start_received = 0;
     evt_tx_done = 0;
 
-    /* 启动接收第 1 字节 */
-    HAL_UART_Receive_IT(&hlpuart1, &rx_byte, 1);
+    /* 使能 RXNE 中断，不使用 HAL_UART_Receive_IT */
+    __HAL_UART_ENABLE_IT(&hlpuart1, UART_IT_RXNE);
 }
 
 /**
-  * @brief  UART 接收中断回调（每收到 1 字节调用）
+  * @brief  处理接收到的字节（从环形缓冲区取出处理）
   */
-void uart_protocol_rx_callback(void)
+static void process_rx_byte(uint8_t data)
 {
     uint8_t cs;
     static uint8_t start_blink_cnt = 0;
 
     /* LED 调试：每收到一个字节短闪一次 */
     HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
-    for (volatile int i = 0; i < 5000; i++);  /* 约 50ms 延时 */
+    for (volatile int i = 0; i < 2000; i++);  /* 约 20ms 延时 */
     HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
 
-    cmd_buf[cmd_buf_idx++] = rx_byte;
+    cmd_buf[cmd_buf_idx++] = data;
 
     if (cmd_buf_idx >= CMD_FRAME_LEN) {
         /* 完整帧已收到 */
@@ -64,14 +68,12 @@ void uart_protocol_rx_callback(void)
 
         /* 校验帧头 */
         if (cmd_buf[0] != CMD_HEADER) {
-            HAL_UART_Receive_IT(&hlpuart1, &rx_byte, 1);
             return;
         }
 
         /* 校验 checksum */
         cs = uart_calc_checksum(cmd_buf, 3);
         if (cs != cmd_buf[3]) {
-            HAL_UART_Receive_IT(&hlpuart1, &rx_byte, 1);
             return;
         }
 
@@ -81,16 +83,38 @@ void uart_protocol_rx_callback(void)
             /* LED 调试：收到 START 后快闪 3 次 */
             for (start_blink_cnt = 0; start_blink_cnt < 3; start_blink_cnt++) {
                 HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
-                for (volatile int i = 0; i < 10000; i++);  /* 约 100ms */
+                for (volatile int i = 0; i < 5000; i++);  /* 约 50ms */
                 HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
-                for (volatile int i = 0; i < 10000; i++);  /* 约 100ms */
+                for (volatile int i = 0; i < 5000; i++);  /* 约 50ms */
             }
         }
         /* CMD_STOP 由状态机处理 */
     }
+}
 
-    /* 继续接收下一字节 */
-    HAL_UART_Receive_IT(&hlpuart1, &rx_byte, 1);
+/**
+  * @brief  UART 接收处理（从中断调用）
+  */
+void uart_protocol_rx_process(void)
+{
+    /* 处理环形缓冲区中的所有数据 */
+    while (rx_head != rx_tail) {
+        uint8_t data = rx_buf[rx_tail];
+        rx_tail = (rx_tail + 1) & 0x07;  /* 环形缓冲 8 字节 */
+        process_rx_byte(data);
+    }
+}
+
+/**
+  * @brief  向接收缓冲区添加数据（由中断调用）
+  */
+void uart_protocol_rx_byte(uint8_t data)
+{
+    uint8_t next_head = (rx_head + 1) & 0x07;
+    if (next_head != rx_tail) {  /* 缓冲区未满 */
+        rx_buf[rx_head] = data;
+        rx_head = next_head;
+    }
 }
 
 /**

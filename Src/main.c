@@ -148,6 +148,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    uart_protocol_rx_process();   /* 处理 UART 接收数据 */
     app_state_machine_run();      /* 状态机主循环 */
   }
   /* USER CODE END 3 */

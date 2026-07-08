@@ -177,7 +177,11 @@ void TIM3_IRQHandler(void)
 void LPUART1_IRQHandler(void)
 {
   /* USER CODE BEGIN LPUART1_IRQn 0 */
-
+  /* RXNE 中断：直接读取数据寄存器，避免 HAL 开销 */
+  if (__HAL_UART_GET_FLAG(&hlpuart1, UART_FLAG_RXNE)) {
+      uint8_t data = (uint8_t)(hlpuart1.Instance->RDR & 0xFF);
+      uart_protocol_rx_byte(data);  /* 存入环形缓冲区 */
+  }
   /* USER CODE END LPUART1_IRQn 0 */
   HAL_UART_IRQHandler(&hlpuart1);
   /* USER CODE BEGIN LPUART1_IRQn 1 */
