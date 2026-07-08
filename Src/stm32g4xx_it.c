@@ -178,15 +178,27 @@ void TIM3_IRQHandler(void)
 void LPUART1_IRQHandler(void)
 {
   /* USER CODE BEGIN LPUART1_IRQn 0 */
-  /* RXNE 中断：直接读取数据寄存器，避免 HAL 开销 */
-  if (__HAL_UART_GET_FLAG(&hlpuart1, UART_FLAG_RXNE)) {
+  uint32_t isrflags = READ_REG(hlpuart1.Instance->ISR);
+  uint32_t cr1its   = READ_REG(hlpuart1.Instance->CR1);
+  uint32_t cr3its   = READ_REG(hlpuart1.Instance->CR3);
+  
+  /* RXNE 中断：接收数据 */
+  if ((isrflags & USART_ISR_RXNE) && (cr1its & USART_CR1_RXNEIE)) {
       uint8_t data = (uint8_t)(hlpuart1.Instance->RDR & 0xFF);
-      uart_protocol_rx_byte(data);  /* 存入环形缓冲区 */
+      uart_protocol_rx_byte(data);
+  }
+  
+  /* IDLE 中断：一帧数据接收完成 */
+  if ((isrflags & USART_ISR_IDLE) && (cr1its & USART_CR1_IDLEIE)) {
+      __HAL_UART_CLEAR_IDLEFLAG(&hlpuart1);
+      /* 帧接收完成，将在主循环中处理 */
   }
   /* USER CODE END LPUART1_IRQn 0 */
+  
+  /* 调用 HAL 处理其他中断（如错误） */
   HAL_UART_IRQHandler(&hlpuart1);
+  
   /* USER CODE BEGIN LPUART1_IRQn 1 */
-
   /* USER CODE END LPUART1_IRQn 1 */
 }
 
