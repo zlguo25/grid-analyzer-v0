@@ -55,8 +55,9 @@ void uart_protocol_init(void);
 
 /**
   * @brief  向接收缓冲区添加数据（由中断调用）
+  * @return 0=成功, 1=缓冲区满
   */
-void uart_protocol_rx_byte(uint8_t data);
+uint8_t uart_protocol_rx_byte(uint8_t data);
 
 /**
   * @brief  UART 接收处理（从主循环调用）

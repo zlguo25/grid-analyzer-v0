@@ -180,7 +180,6 @@ void LPUART1_IRQHandler(void)
   /* USER CODE BEGIN LPUART1_IRQn 0 */
   uint32_t isrflags = READ_REG(hlpuart1.Instance->ISR);
   uint32_t cr1its   = READ_REG(hlpuart1.Instance->CR1);
-  uint32_t cr3its   = READ_REG(hlpuart1.Instance->CR3);
   
   /* RXNE 中断：接收数据 */
   if ((isrflags & USART_ISR_RXNE) && (cr1its & USART_CR1_RXNEIE)) {
