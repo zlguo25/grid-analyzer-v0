@@ -502,15 +502,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     }
 }
 
-/**
-  * @brief  UART 接收完成回调（每收到 1 字节）
-  */
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-{
-    if (huart->Instance == LPUART1) {
-        uart_protocol_rx_callback();
-    }
-}
+
 
 /**
   * @brief  UART 发送完成回调
