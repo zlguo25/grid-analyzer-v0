@@ -5,6 +5,7 @@
   ******************************************************************************
   */
 #include "uart_protocol.h"
+#include "adc_ads8685.h"
 
 /* ---------- 事件标志 ---------- */
 volatile uint8_t evt_start_received = 0;
