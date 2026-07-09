@@ -180,10 +180,9 @@ void uart_protocol_send_data(const uint16_t *voltage_buf, const uint16_t *curren
     }
     
     send_buf[18] = DATA_ATTR_CHANNEL_NUM;
-    /* 量程：±2.56V = 2560mV (小端序) */
-    send_buf[19] = 0x00;  /* 2560 & 0xFF */
-    send_buf[20] = 0x0A;  /* (2560 >> 8) & 0xFF */
-    memset(&send_buf[21], 0, 11);  /* 剩余保留区清零 */
+    /* 量程：ADS8685 RANGE_SEL 寄存器值，0x04 = ±2.56V */
+    send_buf[19] = ADS8685_RANGE_2V56;  /* 0x04 */
+    memset(&send_buf[20], 0, 12);  /* 剩余保留区清零 */
     
     HAL_UART_Transmit(&hlpuart1, send_buf, DATA_FRAME_HEADER_LEN, 60000U);
     checksum = uart_calc_checksum(send_buf, DATA_FRAME_HEADER_LEN);
