@@ -25,8 +25,10 @@ extern TIM_HandleTypeDef htim2;
 #define ADS8685_ADDR_RANGE    0x00140000U             /* RANGE_SEL_REG = 0x14 */
 #define ADS8685_ADDR_SDO_CTL  0x000C0000U             /* SDO_CTL_REG   = 0x0C */
 #define ADS8685_RANGE_10V24   0x00000001U             /* ±10.24V       */
+#define ADS8685_RANGE_2V56    0x00000004U             /* ±2.56V        */
 #define ADS8685_SDO_DEFAULT   0x00000000U             /* daisy chain 默认值 */
 #define CMD_RANGE_10V24       (ADS8685_CMD_WRITE | ADS8685_ADDR_RANGE | ADS8685_RANGE_10V24)
+#define CMD_RANGE_2V56        (ADS8685_CMD_WRITE | ADS8685_ADDR_RANGE | ADS8685_RANGE_2V56)
 #define CMD_SDO_DEFAULT       (ADS8685_CMD_WRITE | ADS8685_ADDR_SDO_CTL | ADS8685_SDO_DEFAULT)
 
 /* ---------- 事件标志 ---------- */

@@ -37,8 +37,8 @@ void adc_ads8685_init(void)
 {
     HAL_Delay(20);
     HAL_GPIO_WritePin(CONVST_GPIO_Port, CONVST_Pin, GPIO_PIN_RESET);
-    /* 两个芯片都配置为 ±10.24V 量程 */
-    adc_write_command(CMD_RANGE_10V24, CMD_RANGE_10V24);
+    /* 两个芯片都配置为 ±2.56V 量程 */
+    adc_write_command(CMD_RANGE_2V56, CMD_RANGE_2V56);
     HAL_GPIO_WritePin(CONVST_GPIO_Port, CONVST_Pin, GPIO_PIN_SET);
     HAL_Delay(1);
     HAL_GPIO_WritePin(CONVST_GPIO_Port, CONVST_Pin, GPIO_PIN_RESET);
